@@ -1,0 +1,76 @@
+version: 2.1
+
+description: "Upload files in workspace to target remote system. See details and usage @GitHub https://github.com/circleci-orbs-tm/ansible_upload"
+
+jobs:
+  upload-files:
+    parameters:
+      upload_dir:
+        description: "Target directory to upload files"
+        type: string
+        default: ""
+
+      fingerprints:
+        description: "SSH private key's fingerprints"
+        type: string
+        default: ""
+
+      workspace_root:
+        description: "root name of attached workspace"
+        type: string
+        default: ""
+
+    executor:
+      name: ansible
+
+    steps:
+      - add-ssh-key:
+          fingerprints: <<parameters.fingerprints>>
+      - upload-files:
+          upload_dir: <<parameters.upload_dir>>
+          workspace_root: <<parameters.workspace_root>>
+
+commands:
+  add-ssh-key:
+
+    parameters:
+      fingerprints:
+        description: "SSH private key's fingerprints"
+        type: string
+
+    steps:
+     - add_ssh_keys:
+         fingerprints:
+           - "<<parameters.fingerprints>>"
+
+
+  upload-files:
+
+    parameters:
+      upload_dir:
+        description: "Target directory to upload files"
+        type: string
+
+      workspace_root:
+        description: "root name of attached workspace"
+        type: string
+
+    steps:
+      - run:
+          name: Show Ansible version
+          command: ansible --version
+
+      - attach_workspace:
+          at: <<parameters.workspace_root>>
+
+      - run:
+          name: Upload files
+          command: |
+            ansible all -i "$HOST_NAME:$SSH_PORT," -u $SSH_USER -m "copy" -a "src=<<parameters.workspace_root>> dest=<<parameters.upload_dir>> force=yes"
+
+executors:
+  ansible:
+    docker:
+      - image: tomonorimatsumura/centos7-ansible:stable
+        environment:
+          ANSIBLE_HOST_KEY_CHECKING: false

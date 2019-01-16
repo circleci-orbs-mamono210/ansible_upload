@@ -1,0 +1,45 @@
+version: 2.1
+
+orbs:
+  ansible: orbss/ansible_upload@0.2.8
+
+jobs:
+  create-workspace:
+    docker:
+      - image: tomonorimatsumura/centos7-ansible:yum
+
+    steps:
+      - run:
+          name: Create directory for attaching worksapce
+          command: mkdir -p /tmp/circleci_workspace
+
+      - run:
+          name: Create test files
+          command: |
+            cd /tmp/circleci_workspace
+            touch test.txt
+            echo `date "+%Y%m%d_%H%M%S"`.txt > test.txt
+            touch test1.`date "+%Y%m%d_%H%M%S"`.txt
+            mkdir test
+            touch test/test.txt
+            echo `date "+%Y%m%d_%H%M%S"` > test/test.txt
+            touch test/test2.`date "+%Y%m%d_%H%M%S"`.txt
+
+      - persist_to_workspace:
+          root: /tmp/circleci_workspace
+          paths:
+            - .
+
+workflows:
+  version: 2
+  generator:
+    jobs:
+      - create-workspace
+
+      - ansible/upload-files:
+          requires:
+            - create-workspace
+          context: Sakura-VPS1
+          upload_dir: "/var/www/html/plantuml"
+          fingerprints: 45:71:32:cd:b0:39:88:82:0e:6a:e6:49:9c:ae:60:a1
+          workspace_root: /tmp/circleci_workspace/
